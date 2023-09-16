@@ -5,6 +5,8 @@ stopEl.disabled = true;
 let intervalID = null;
 
 const randomBodyColorGenerator = {
+  DELAY: 1000,
+
   getRandomHexColor() {
     return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
   },
@@ -12,7 +14,7 @@ const randomBodyColorGenerator = {
   interval() {
     intervalID = setInterval(() => {
       changeBgColorRandom();
-    }, 1000);
+    }, this.DELAY);
     stopEl.disabled = false;
   },
 
