@@ -1,41 +1,78 @@
-const bodyEl = document.querySelector('body');
-const startEl = document.querySelector('button[data-start]');
-const stopEl = document.querySelector('button[data-stop]');
-stopEl.disabled = true;
-let intervalID = null;
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
+import { Notify } from 'notiflix/build/notiflix-notify-aio';
 
-const randomBodyColorGenerator = {
-  DELAY: 1000,
+const startBtn = document.querySelector('[data-start]');
+const daysRef = document.querySelector('[data-days]');
+const hoursRef = document.querySelector('[data-hours]');
+const minutesRef = document.querySelector('[data-minutes]');
+const secondsRef = document.querySelector('[data-seconds]');
+let timerId = null;
 
-  getRandomHexColor() {
-    return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
-  },
+startBtn.setAttribute('disabled', true);
 
-  interval() {
-    intervalID = setInterval(() => {
-      changeBgColorRandom();
-    }, this.DELAY);
-    stopEl.disabled = false;
-  },
+function convertMs(ms) {
+  const second = 1000;
+  const minute = second * 60;
+  const hour = minute * 60;
+  const day = hour * 24;
 
-  start() {
-    startEl.addEventListener('click', () => {
-      this.interval();
-      startEl.disabled = true;
-      stopEl.disabled = false;
-    });
-    stopEl.addEventListener('click', this.stop);
-  },
+  const days = Math.floor(ms / day);
+  const hours = Math.floor((ms % day) / hour);
+  const minutes = Math.floor(((ms % day) % hour) / minute);
+  const seconds = Math.floor((((ms % day) % hour) % minute) / second);
 
-  stop() {
-    clearInterval(intervalID);
-    stopEl.disabled = true;
-    startEl.disabled = false;
+  return { days, hours, minutes, seconds };
+}
+
+const addLeadingZero = value => String(value).padStart(2, 0);
+
+const options = {
+  enableTime: true,
+  time_24hr: true,
+  defaultDate: new Date(),
+  minuteIncrement: 1,
+  onClose(selectedDates) {
+    if (selectedDates[0] < new Date()) {
+      Notify.failure('Please choose a date in the future');
+      return;
+    }
+    startBtn.removeAttribute('disabled');
+
+    const showTimer = () => {
+      const now = new Date();
+      localStorage.setItem('selectedData', selectedDates[0]);
+      const selectData = new Date(localStorage.getItem('selectedData'));
+
+      if (!selectData) return;
+
+      const diff = selectData - now;
+      const { days, hours, minutes, seconds } = convertMs(diff);
+      daysRef.textContent = days;
+      hoursRef.textContent = addLeadingZero(hours);
+      minutesRef.textContent = addLeadingZero(minutes);
+      secondsRef.textContent = addLeadingZero(seconds);
+
+      if (
+        daysRef.textContent === '0' &&
+        hoursRef.textContent === '00' &&
+        minutesRef.textContent === '00' &&
+        secondsRef.textContent === '00'
+      ) {
+        clearInterval(timerId);
+      }
+    };
+
+    const onClick = () => {
+      if (timerId) {
+        clearInterval(timerId);
+      }
+      showTimer();
+      timerId = setInterval(showTimer, 1000);
+    };
+
+    startBtn.addEventListener('click', onClick);
   },
 };
 
-function changeBgColorRandom() {
-  bodyEl.style.backgroundColor = `${randomBodyColorGenerator.getRandomHexColor()}`;
-}
-
-randomBodyColorGenerator.start();
+flatpickr('#datetime-picker', { ...options });
